@@ -1,0 +1,35 @@
+---
+header-includes:
+title: "Project Title"
+author: "Author Name"
+date: "Month Day, Year"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+#library(kableExtra)
+#library(gtsummary)
+#source("common.R")
+#testing_with_predictions <- read_csv(str_c("../data_output/",project_name,"_testing_w_predictions_",Sys.Date(), ".csv"))
+
+```
+
+## Lorem ipsum
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque sit amet orci id odio mattis condimentum. Proin a tortor sed lorem porta iaculis sit amet eu metus. Morbi gravida nulla ex, consectetur gravida dolor scelerisque eget. Morbi sed lectus consectetur, consequat lacus et, luctus elit. Curabitur vestibulum lacus vitae urna venenatis porttitor. Etiam tristique accumsan urna nec bibendum. Vivamus quis mi quis massa elementum fermentum. Pellentesque est est, tempor eu diam id, fringilla laoreet sem. Sed at lobortis justo.
+
+Praesent id auctor leo, in vehicula augue. Praesent lacinia ornare lacinia. Mauris vel justo tellus. Nam non leo eu justo malesuada elementum non nec lorem. Quisque hendrerit, massa sed tincidunt molestie, libero magna sollicitudin lectus, ut pellentesque lacus ligula sit amet est. Proin consectetur eget nunc ut bibendum. Curabitur erat odio, condimentum sed ullamcorper a, mattis at est. Curabitur accumsan vestibulum odio ut auctor. 
+
+
+```{r test_results, echo=FALSE}
+
+acts <- rnorm(1000, 4, 2)
+pred <- acts + rnorm(1000, 0, 1)
+tibble(predictions = pred, actuals = acts) %>%
+  ggplot(aes(x = actuals, y = predictions)) +
+  geom_point() +
+  xlab("Actuals") +
+  ylab("Predictions") +
+  ggtitle("Actuals vs. Predictions")
+```
