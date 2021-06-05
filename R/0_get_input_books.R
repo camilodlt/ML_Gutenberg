@@ -141,7 +141,7 @@ for(position in 1:length(batch)){ # For batches
     }
     # Correct
     books[[i]]$text<- correct_enc(book_var = books[[i]],enc_found = stri_trans_toupper(enc_found[[1]]))
-    Sys.sleep(1) # per book. Be kind with Gutenberg
+    Sys.sleep(100) # per book. Be kind with Gutenberg
   }
   name<- paste0('books_',min(books_to_download),'_', max(books_to_download), '.rds') # Sequence of books fetched
   name<- paste0(pre_path, name)
