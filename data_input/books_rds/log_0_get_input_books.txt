@@ -1,0 +1,60 @@
+BOOK : 1 ------
+18
+Declared encoding of the book ---
+UTF-8
+is UTF ? ---
+TRUE
+Encodings as a table ---
+5011
+14367
+Encoding ok, Nothing done
+BOOK : 2 ------
+18
+Declared encoding of the book ---
+ISO-8859-1
+is UTF ? ---
+FALSE
+Encodings as a table ---
+1468
+2545
+coerced to UTF-8
+BOOK : 3 ------
+20
+Declared encoding of the book ---
+ISO-8859-1
+is UTF ? ---
+FALSE
+Encodings as a table ---
+8296
+12622
+coerced to UTF-8
+BOOK : 4 ------
+19
+Declared encoding of the book ---
+ISO-8859-1
+is UTF ? ---
+FALSE
+Encodings as a table ---
+2962
+4383
+coerced to UTF-8
+BOOK : 5 ------
+18
+Declared encoding of the book ---
+ISO-8859-1
+is UTF ? ---
+FALSE
+Encodings as a table ---
+4223
+5438
+coerced to UTF-8
+BOOK : 6 ------
+18
+Declared encoding of the book ---
+ISO-8859-1
+is UTF ? ---
+FALSE
+Encodings as a table ---
+730
+874
+coerced to UTF-8
