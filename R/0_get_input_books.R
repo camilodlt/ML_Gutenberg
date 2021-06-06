@@ -63,43 +63,76 @@ info<- function(book_var, pos){
   # Log if all lines have bytes that form utf-8 understandable string
   writeLines('is UTF ? ---',log_con)
   writeLines(as.character(all(stringi::stri_enc_isutf8(book_var$text))),log_con)
-  # Print encodings
-  writeLines('Encodings as a table ---',log_con)
-  writeLines(as.character(table(Encoding(book_var$text))),log_con)
   if(is_empty(enc_found)){
     writeLines('Not declared encoding found',log_con)
-    message('Not declared encoding found')}
+    }
   return(enc_found)
 }
 guess_enc<- function(book_var){
+  stripped <- gutenberg_strip(book_var$text)
+  if(sum(nchar(iconv(stripped)),na.rm = TRUE)==0 | all(is.na(stripped)) | is_empty(stripped)){
+    writeLines('Strip removes book content',log_con)
+    return(NA)
+  } else {
   temp<-stringi::stri_enc_detect2(
-    stringi::stri_flatten(
-      gutenberg_strip(book_var$text)), 'fr')[[1]][[1]][1]
+    stringi::stri_flatten(stripped), 'fr')[[1]][[1]][1]
   writeLines('Encoding guessed:',log_con)
-  writeLines('temp',log_con)
+  writeLines(temp,log_con)
   return(temp)
+  }
 }
 
 # ' latin-1 is very common
 correct_enc<- function(book_var, enc_found){
-  if(!enc_found=='UTF-8'){ # COERCE PROCEDURE
-    if(enc_found=='LATIN-1'){ # if declared latin-1 => to iconv is LATIN1 (better not to guess)
+
+  #* GUESSING WASN'T POSSIBLE & No explicit encoding (empty or NA)
+  if (is.na(enc_found)){
+    writeLines("No encoding guess. Text replaced by NA",log_con)
+    temp_text<- NA_character_
+  }
+
+  #* Encodings to try : COERCE PROCEDURE
+  if(!enc_found=='UTF-8' & !is.na(enc_found)){ # explicit UTF-8 have other procedure
+
+    #* Common encodings of french books
+    #* very common to ave latin-1 and iso-latin-1.
+    #* Those are, in my iconvlist, LATIN1
+    #* no need to guess
+    if(enc_found=='LATIN-1' | enc_found=="ISO-LATIN-1" | enc_found== "ISO LATIN-1"){ # if declared latin-1 => to iconv is LATIN1 (better not to guess)
       temp_text<- try(iconv(book_var$text, from='LATIN1', to= 'UTF-8'))
-    } else { # other enc_found => use it as is
+
+      # if explicit encoding didn't work. guess and try again.
+      if(class(temp_text)=='try-error'){
+      writeLines("Explicit encoding didn't work",log_con)
+      enc_found<-guess_enc(book_var)
+      if(is.na(enc_found)){# if guess is NA: Nothing we can do. Return NA (remove book)
+        writeLines("No encoding guess. Text replaced by NA",log_con)
+        temp_text<- NA_character_} else { # We have a guess. Let's try it
+      temp_text<- try(iconv(book_var$text, from=enc_found, to= 'UTF-8'))}
+      }}
+
+    #* If explicit encoding was not common OR
+    #* A guess_enc took place
+    #* Try with that
+    else { # other enc_found => use it as is
       temp_text<- try(iconv(book_var$text, from=enc_found, to= 'UTF-8'))} # try with given encoding
     if(class(temp_text)=='try-error'){ # if error 1st round
       writeLines("can't coerce with given encoding",log_con)
       guess<-guess_enc(book_var) # try guessing
-      temp_text<- try(iconv(book_var$text, from=guess, to= 'UTF-8')) # Try iconv again
+      if (is.na(guess)){ # if guessed == NA
+        writeLines("No encoding guess. Text replaced by NA",log_con)
+        temp_text<- NA_character_
+      } else {
+      temp_text<- try(iconv(book_var$text, from=guess, to= 'UTF-8')) } # Try iconv again
       if(class(temp_text)=='try-error'){ # if error again.. NA
-        temp_text<- NA
+        temp_text<- NA_character_
         writeLines("Can't coerce with guessed encoding either",log_con)
       } else { # if no error in 2nd round: Coerced worked. print that it worked
         writeLines("coerced to UTF-8 with guessed encoding",log_con)
       }}
     else {writeLines("coerced to UTF-8",log_con)} # it worked the first time
 
-  } else  { # already UTF-8
+  } else if(enc_found=='UTF-8' & !is.na(enc_found)) { # already UTF-8
     temp_text<- book_var$text
     writeLines("Encoding ok, Nothing done",log_con)
   }
@@ -124,32 +157,32 @@ print(batch)
 
 #* ITERATE OVER BATCHES ---
 pre_path<- "data_input/books_rds/"
-for(position in 1:length(batch)){ # For batches
+for(position in 1:(length(batch)-1)){ # For batches
   # MAKE A SEQUENCE TO DOWNLOAD ---
-  if(position+1 <= length(batch)){ # It's at most, the last batch
   books_to_download<- batch[position]:(batch[position+1]-1)
-  books<- map(books_to_download,~gutenberg_download(gutenberg_id = gutenberg_fr[.x,], mirror = mirror,
+  books<- map(1:2,~gutenberg_download(gutenberg_id = gutenberg_fr[.x,], mirror = mirror,
                                                     verbose = TRUE, strip = FALSE)) # get the sequence of books in a list
   books<-books%>% discard(~nrow(.)<1) # Some books doesn't have data
+  actual_downloaded_books <- 1:length(books) # we loop over actual books. Some books may not be available.
   #* Loop the sequence of books ---
-  for(i in 1:length(books_to_download)){ # Go one by one and check encoding, re_download if UTF-8 if not coerce. Finally save as RDS.
-    real_book_number <- books_to_download[i]
+  for(i in 1:length(actual_downloaded_books)){ # Go one by one and check encoding, re_download if UTF-8 if not coerce. Finally save as RDS.
+    real_book_number <- actual_downloaded_books[i]
     enc_found<-info(book_var = books[[i]], pos = real_book_number) # Find encoding. If any
     # Encoding correction
     if(is_empty(enc_found)){
-      enc_found<- guess_enc(books[[11]]) # Guess if not found
+      enc_found<- guess_enc(books[[i]]) # Guess if not found
     }
     # Correct
     books[[i]]$text<- correct_enc(book_var = books[[i]],enc_found = stri_trans_toupper(enc_found[[1]]))
-    Sys.sleep(100) # per book. Be kind with Gutenberg
   }
   name<- paste0('books_',min(books_to_download),'_', max(books_to_download), '.rds') # Sequence of books fetched
   name<- paste0(pre_path, name)
   saveRDS(object= books, file = name) # save
   print(paste0(name,': SAVED---------')) # Status
 
+  Sys.sleep(120) # per batch. Be kind with Gutenberg
+
   } # Batch indices (e.g. 1...100 for the first batch)
-}
 
 # CLOSE CON ---
 close(log_con)
