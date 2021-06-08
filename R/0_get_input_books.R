@@ -160,12 +160,12 @@ pre_path<- "data_input/books_rds/"
 for(position in 1:(length(batch)-1)){ # For batches
   # MAKE A SEQUENCE TO DOWNLOAD ---
   books_to_download<- batch[position]:(batch[position+1]-1)
-  books<- map(1:2,~gutenberg_download(gutenberg_id = gutenberg_fr[.x,], mirror = mirror,
+  books<- map(books_to_download,~gutenberg_download(gutenberg_id = gutenberg_fr[.x,], mirror = mirror,
                                                     verbose = TRUE, strip = FALSE)) # get the sequence of books in a list
   books<-books%>% discard(~nrow(.)<1) # Some books doesn't have data
   actual_downloaded_books <- 1:length(books) # we loop over actual books. Some books may not be available.
   #* Loop the sequence of books ---
-  for(i in 1:length(actual_downloaded_books)){ # Go one by one and check encoding, re_download if UTF-8 if not coerce. Finally save as RDS.
+  for(i in actual_downloaded_books){ # Go one by one and check encoding, re_download if UTF-8 if not coerce. Finally save as RDS.
     real_book_number <- actual_downloaded_books[i]
     enc_found<-info(book_var = books[[i]], pos = real_book_number) # Find encoding. If any
     # Encoding correction
@@ -180,7 +180,7 @@ for(position in 1:(length(batch)-1)){ # For batches
   saveRDS(object= books, file = name) # save
   print(paste0(name,': SAVED---------')) # Status
 
-  Sys.sleep(120) # per batch. Be kind with Gutenberg
+  Sys.sleep(6000) # per batch. Be kind with Gutenberg
 
   } # Batch indices (e.g. 1...100 for the first batch)
 
