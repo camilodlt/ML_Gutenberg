@@ -116,12 +116,12 @@ books_df%>% head()%>% as_tibble()%>% print
 info(logger, "Writing to disk : DF, DT, Feather")
 # WRITE TO DISK ------
   #* Dataframe
-filename<- get_versioned_file_name("data_working/", "ML_formmated_DF", file_suffix = ".Rds")
+filename<- get_versioned_file_name("data_working/", "ML_formatted_DF", file_suffix = ".Rds")
 saveRDS(books_df,file = filename)
   #* Data.table
-filename<- get_versioned_file_name("data_working/", "ML_formmated_DT", file_suffix = ".Rds")
+filename<- get_versioned_file_name("data_working/", "ML_formatted_DT", file_suffix = ".Rds")
 saveRDS(books_dt,file = filename)
   #* feather
-filename<- get_versioned_file_name("data_working/", "ML_formmated_Feather", file_suffix = ".feather")
+filename<- get_versioned_file_name("data_working/", "ML_formatted_Feather", file_suffix = ".feather")
 write_feather(books_df,path = filename)
 
