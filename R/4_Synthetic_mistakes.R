@@ -1,8 +1,24 @@
-##-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-##  Step 4: Measure. In this step, the trained model will be applied to the testing partitions. Performance measures can be persisted and retrieved in the presentation step.   -
-##-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#################################################################
+##              Step 4: Create synthetic mistakes              ##
+#################################################################
 
 source("R/common.R")
+# Caller
+step <- "Step 4: Create synthetic mistakes"
+# Purpose
+explanations <- "Phrases have now a maximum length (chars).
+- We check this length (char and words)
+- Normal looking but with outliers. Remove upper outliers.
+- Create Truth and Mistakes columns. (X, Y)
+"
+print(banner(step))
+print(boxup(explanations, centre = F))
+
+# LIBRARIES ------
+library(purrr)
+library(doFuture)
+library(future.callr)
+library(spell4french)
 
 ##-------------------------------------------------------
 ##  Apply testing partitions to the persisted model     -
