@@ -30,8 +30,8 @@ books<-readRDS(to_import)
 # PARAMS ------
 remove_upper<-TRUE
 remove_lower<-FALSE
-sprintf("Remove Upper: %s",as.character(remove_upper))
-sprintf("Remove Lower: %s",as.character(remove_lower))
+sprintf("Remove Upper: %s",as.character(remove_upper))%>% print()
+sprintf("Remove Lower: %s",as.character(remove_lower))%>% print()
 
 ##----------------------------------------------------------------
 ##                        Length Checker                         -
@@ -61,7 +61,7 @@ if(remove_lower){
   cat("We keep every char vector that has more than ", th_l, " characters \n")
   # Remove lower --
   books<- map(books, ~discard(.,~ nchar(.)< th_l))
-  sprintf("N lines removed:%i: ", n)
+  sprintf("N lines removed:%i: ", n)%>% print()
 }
   #* Upper ---
 if(remove_upper){
@@ -70,7 +70,7 @@ if(remove_upper){
   cat("We keep every char vector that has less than ", th_h, " characters (95th decile)\n")
   # Remove upper --
   books<- map(books, ~discard(.,~ nchar(.)> th_h))
-  sprintf("N lines removed: %i ", n)
+  sprintf("N lines removed: %i ", n)%>% print()
 
 }
 
@@ -114,7 +114,6 @@ books_df%>% head()%>% as_tibble()%>% print
 ##----------------------------------------------------------------
 
 info(logger, "Writing to disk : DF, DT, Feather")
-
 # WRITE TO DISK ------
   #* Dataframe
 filename<- get_versioned_file_name("data_working/", "ML_formmated_DF", file_suffix = ".Rds")
