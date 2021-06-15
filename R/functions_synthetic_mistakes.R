@@ -44,7 +44,6 @@ decider_word<- function(x,modification_prob= 0.3,
     } else{
       sampled<- sample(functions, to_sample)
     }
-    print(sampled)
     mistake <- spell4french:::apply_depth_multiple(sampled, x,ret1=TRUE)
     return(mistake)
   }
