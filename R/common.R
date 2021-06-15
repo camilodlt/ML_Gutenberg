@@ -40,7 +40,7 @@ remove_non_fr<- function(x){
 # Functions for 2_enrich ---
 tokenize_if_length<-function(x){
   if(nchar(x)>50){
-    temp<- tokenize_ngrams(x,n_min=10, n=10, simplify = TRUE)
+    temp<- tokenize_ngrams(x,n_min=8, n=10, simplify = TRUE)
     n_to_keep <- max(round(length(temp)/6),1) # at least 1
     temp<- sample(temp, size = n_to_keep) # keep 1/6th of the ngrams
     return(temp)} else {
