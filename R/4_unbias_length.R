@@ -25,79 +25,119 @@ print(boxup(explanations, centre = F))
 suppressMessages(library(purrr))
 suppressMessages(library(dplyr))
 suppressMessages(library(tokenizers))
-suppressMessages(library(progress))
+suppressMessages(library(progressr))
 suppressMessages(library(feather))
+suppressMessages(library(disk.frame))
+
+setup_disk.frame()
+progressr::handlers(global = TRUE)
+
 
 # HYPER ------
-hyper1<-'
+hyper1 <- '
 # This script tries to reduce the bias towards large sentences.
 # if keep_size = "constant": 1 subset of each sentence will be used as the Truth sentence
 # its size will vary between one word and all the words (sampled)
 # if keep_size= "multiply": a sentence with n words will have n subsets (one with one word,
 # another with 2 words, ..., until the maximum number of words in the dataset)'
 #* Define ---
-keep_size= "multiply" # constant or multiply
+keep_size <- "multiply" # constant or multiply or no_touched
 #* Print to console ---
 print(boxup(hyper1, centre = F))
 print(sprintf("Keep_size set to: %s", keep_size))
 
 # FILES ------
 info(logger, "Loading data...")
-last_file<-last_version("data_working/", pattern = ".feather",overall_pattern = "ML_formatted")
-# READ FEATHER ------
-df<- feather::read_feather(last_file)
+# last_file<-last_version("data_working/", pattern = ".feather",overall_pattern = "ML_formatted")
+# # READ FEATHER ------
+# df<- feather::read_feather(last_file)
+# # TO RM
+# df<- df[1:2000000,]
+df.frame <- disk.frame("data_working/3.5_ML_formatted")
+print(sprintf("Number of chunks: %s", nchunks(df.frame)))
 
-##---------------------------------------------------------------
+## ---------------------------------------------------------------
 ##          Sample ngrams of diff size from sentences           -
-##---------------------------------------------------------------
+## ---------------------------------------------------------------
 
 info(logger, "WORD COUNT PER SENTENCE")
-
 # WORD COUNT PER SENTENCE ------
 print("# sentence per word count")
-table(count_words(df$Truth))%>% print()
-n_sen<- nrow(df)
-max_word <- max(count_words(df$Truth))
+freq <- cmap(df.frame, ~ count_words(.x[, "Truth"]$Truth), lazy = FALSE) %>% unlist()
+table(freq) %>% print()
+n_sen <- nrow(df.frame)
 print(sprintf("Number of sentences: %s", n_sen))
+max_word <- max(freq)
 
 # SAMPLE DIFFERENT SIZES ------
-# KEEP SIZE == "Constant" ------
 info(logger, "Sampling sentences...")
-if (keep_size=="constant"){
-pb<-progress_bar$new(total=nrow(df),force = TRUE)
-df$Truth<- map_chr(df$Truth, function(x){
-  pb$tick()
-  x= tokenize_ngrams(x, n_min =1 ,n=16, simplify = T)
-  return(sample(x,1))
-})
-  state=1 # No problem
-} else if (keep_size=="multiply"){
-  pb<-progress_bar$new(total=nrow(df),force = TRUE)
-  df<-map2_dfr(df$Truth,df$id, function(x,y){
-    pb$tick()
-    max_word= count_words(x)
-    df <- data.frame("ngram"=tokenize_ngrams(x, n_min =1 ,n=max_word, simplify = TRUE))
-    df <- df%>% mutate(count= count_words(ngram))
-    df<- df %>% group_by(count)%>% tidyr::nest(data=c(ngram))
-    df<- df%>% mutate("one"= map_chr(data, ~sample(.[[1]],1)))%>% ungroup()
-    df$id<- y
-    df <- df%>% select(id,"Truth"=one)
-    return(df)
-  })
-  state=1 # No problem
-} else{
+if (keep_size == "constant") {
+  # KEEP SIZE == "Constant" ------
+  info(logger, "Constant strategy selected")
+  df.frame_caller <- cmap(
+    df.frame,
+    function(chunk) {
+      sentences <- chunk[, "Truth"]$Truth #  chunk or batch
+      # iterate over chunk
+      new_sentences <- map_chr(sentences, function(x) {
+        x <- tokenizers::tokenize_ngrams(x, n_min = 1, n = 16, simplify = T)
+        return(sample(x, 1))
+      })
+      new_sentences <- as_tibble(list(
+        "id" = chunk[, "id"]$id,
+        "Truth" = new_sentences
+      ))
+      return(new_sentences)
+    }
+  )
+  df.frame_caller %>% compute(outdir = "data_working/4_unbias_constant", overwrite = TRUE)
+  state <- 1 # No problem
+} else if (keep_size == "multiply") {
+  # KEEP SIZE == "Multiply" ------
+  info(logger, "Multiply strategy selected")
+  setup_disk.frame()
+  df.frame_caller <- cmap(df.frame,
+    .progress = TRUE,
+    function(chunk) {
+      sentences <- chunk[, "Truth"]$Truth #  chunk or batch
+      ids <- chunk[, "id"]$id #  chunk or batch
+      # iterate over chunk
+      new_sentences_df <- map2_dfr(sentences, ids, function(x, y) {
+        max_word <- tokenizers::count_words(x)
+        df <- data.frame("ngram" = tokenizers::tokenize_ngrams(x, n_min = 1, n = max_word, simplify = TRUE))
+        df <- df %>% mutate(count = tokenizers::count_words(ngram))
+        df <- df %>%
+          group_by(count) %>%
+          tidyr::nest(data = c(ngram))
+        df <- df %>%
+          mutate("one" = map_chr(data, ~ sample(.[[1]], 1))) %>%
+          ungroup()
+        df$id <- y
+        df <- df %>% select(id, "Truth" = one)
+        return(df)
+      })
+      return(new_sentences_df)
+    }
+  )
+  df.frame_caller %>% compute(outdir = "data_working/4_unbias_multiply", overwrite = TRUE)
+  state <- 1 # No problem
+} else if (keep_size == "no_touched") {
+  # KEEP SIZE == "no_touched" ------
+  info(logger, "'Leave as is' strategy selected")
+  state <- 1 # No problem
+} else {
+  # wrong KEEP SIZE  ------
   message("keep_size method not defined")
-  state<- 0 # problem
+  state <- 0 # problem
 }
 
-##---------------------------------------------------------------
+## ---------------------------------------------------------------
 ##                        Write to disk                         -
-##---------------------------------------------------------------
-if(state>0){
-info(logger, "Writing to disk")
-# Write feather ---
-  #* feather
-filename<- get_versioned_file_name("data_working/", paste("4_Unbiased", keep_size, sep="_"), file_suffix = ".feather")
-write_feather(df,path = filename)
-
-}
+## ---------------------------------------------------------------
+# if (state > 0) {
+#   info(logger, "Writing to disk")
+#   # Write feather ---
+#   #* feather
+#   filename <- get_versioned_file_name("data_working/", paste("4_Unbiased", keep_size, sep = "_"), file_suffix = ".feather")
+#   write_feather(df, path = filename)
+# }
