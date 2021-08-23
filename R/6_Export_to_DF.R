@@ -73,13 +73,23 @@ info(logger, "SAVING")
 base_path<- paste0(getwd(),"/data_output/",SOURCE)
 dir_check(base_path) # Create, check or override
 message("Saving to", base_path)
+# write.csv2(Text_data[,c("Truth","Mistake")], # Just Truth and Mistake
+#           file=paste0(base_path,"/READY_ML.csv"),
+#           row.names = FALSE, quote= FALSE)
 write.table(Text_data[,c("Truth","Mistake")], # Just Truth and Mistake
             file=paste0(base_path,"/READY_ML.txt"),
+            sep=", ,",
+            quote=FALSE,
             row.names = FALSE,
             col.names = TRUE)
 # Write sample
+# write.csv2(Text_data[1:1000,c("Truth","Mistake")], # Just Truth and Mistake
+#           file=paste0(base_path,"/Sample_ML.csv"),
+#           row.names = FALSE, quote= FALSE)
 write.table(Text_data[1:1000,c("Truth","Mistake")], # Just Truth and Mistake
             file=paste0(base_path,"/Sample_ML.txt"),
+            sep=", ,",
+            quote=FALSE,
             row.names = FALSE,
             col.names = TRUE)
 
